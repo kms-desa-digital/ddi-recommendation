@@ -6,7 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
-from ..config.firebase_config import db
+from ..config.mongodb_config import db
 from ..utils.text_processing import (
     preprocess_text,
     preprocess_combined_features,
@@ -30,41 +30,79 @@ class RecommendationEngine:
         self.is_initialized = False
         self.initialize_model()
 
-    def _fetch_innovations_from_firebase(self) -> List[Dict[str, Any]]:
+    def _fetch_innovations_from_mongodb(self) -> List[Dict[str, Any]]:
         """
-        Fetch innovations dari Firebase dengan error handling
+        Fetch innovations dari MongoDB dengan error handling
 
         Returns:
             List[Dict[str, Any]]: List data inovasi
         """
         try:
-            innovations_ref = db.collection("innovations")
-            required_fields = [
-                "id",
-                "deskripsi",
-                "kategori",
-                "namaInovasi",
-                "namaInnovator",
-                "images",
-                "tahunDibuat",
-            ]
-            docs = innovations_ref.select(required_fields).stream()
-            # docs = innovations_ref.stream()
-
+            if db is None:
+                print("MongoDB connection is not established.")
+                return []
+                
+            # Query innovations, prioritize verified ones
+            cursor = db.innovations.find({"status": "Terverifikasi"})
             data = []
 
-            for doc in docs:
+            for doc in cursor:
                 try:
-                    doc_data = doc.to_dict()
-                    doc_data["id"] = doc.id
+                    doc_data = {}
+                    # Map MongoDB fields
+                    doc_data["id"] = str(doc.get("_id"))
+                    doc_data["deskripsi"] = doc.get("deskripsi", "")
+                    doc_data["kategori"] = doc.get("kategori", "")
+                    doc_data["namaInovasi"] = doc.get("namaInovasi", "")
+                    doc_data["namaInnovator"] = doc.get("namaInnovator", "")
+                    
+                    # Handle images/fotoInovasi field
+                    raw_images = doc.get("fotoInovasi") or doc.get("images") or []
+                    if isinstance(raw_images, str):
+                        doc_data["images"] = [raw_images]
+                    elif isinstance(raw_images, list):
+                        doc_data["images"] = raw_images
+                    else:
+                        doc_data["images"] = []
+                        
+                    doc_data["tahunDibuat"] = str(doc.get("tahunDibuat", ""))
+                    
                     data.append(doc_data)
                 except Exception as e:
-                    print(f"Error processing document {doc.id}: {e}")
+                    print(f"Error processing document: {e}")
                     continue
 
+            # Fallback if no verified innovations are found (e.g. initial setup)
+            if not data:
+                print("No verified innovations found, querying all innovations as fallback...")
+                cursor_all = db.innovations.find()
+                for doc in cursor_all:
+                    try:
+                        doc_data = {}
+                        doc_data["id"] = str(doc.get("_id"))
+                        doc_data["deskripsi"] = doc.get("deskripsi", "")
+                        doc_data["kategori"] = doc.get("kategori", "")
+                        doc_data["namaInovasi"] = doc.get("namaInovasi", "")
+                        doc_data["namaInnovator"] = doc.get("namaInnovator", "")
+                        
+                        raw_images = doc.get("fotoInovasi") or doc.get("images") or []
+                        if isinstance(raw_images, str):
+                            doc_data["images"] = [raw_images]
+                        elif isinstance(raw_images, list):
+                            doc_data["images"] = raw_images
+                        else:
+                            doc_data["images"] = []
+                            
+                        doc_data["tahunDibuat"] = str(doc.get("tahunDibuat", ""))
+                        data.append(doc_data)
+                    except Exception as e:
+                        print(f"Error processing document: {e}")
+                        continue
+
+            print(f"Fetched {len(data)} innovations from MongoDB.")
             return data
         except Exception as e:
-            print(f"Error fetching innovations from Firebase: {e}")
+            print(f"Error fetching innovations from MongoDB: {e}")
             return []
 
     def _validate_and_clean_data(self, data: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -224,10 +262,10 @@ class RecommendationEngine:
             try:
                 print("Initializing recommendation model...")
 
-                # 1. Fetch data dari Firebase
-                data = self._fetch_innovations_from_firebase()
+                # 1. Fetch data dari MongoDB
+                data = self._fetch_innovations_from_mongodb()
                 if not data:
-                    print("No data fetched from Firebase")
+                    print("No data fetched from MongoDB")
                     return False
                 # 2. Validasi dan pembersihan data
                 df = self._validate_and_clean_data(data)
