@@ -1,7 +1,7 @@
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routes import recommendation_routes
+from app.routes import recommendation_routes
 
 app = FastAPI(
     title="Innovation Recommendation System",
