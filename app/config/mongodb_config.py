@@ -1,5 +1,8 @@
 from pymongo import MongoClient
-from .settings import settings
+try:
+    from app.config.settings import settings
+except ImportError:
+    from config.settings import settings
 
 def initialize_mongodb():
     try:

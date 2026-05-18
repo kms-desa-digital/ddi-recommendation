@@ -1,14 +1,20 @@
 import os
 import sys
 
-# Inject parent directory of 'app' into python path to support absolute 'app.*' imports in Vercel serverless runtime
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if parent_dir not in sys.path:
-    sys.path.insert(0, parent_dir)
+# Bulletproof path setup for both local execution and Vercel serverless deployments
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.dirname(current_dir)
+for d in [current_dir, parent_dir]:
+    if d not in sys.path:
+        sys.path.insert(0, d)
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routes import recommendation_routes
+
+try:
+    from app.routes import recommendation_routes
+except ImportError:
+    from routes import recommendation_routes
 
 app = FastAPI(
     title="Innovation Recommendation System",

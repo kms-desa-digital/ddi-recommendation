@@ -1,9 +1,17 @@
 from fastapi import APIRouter, HTTPException
-from app.models.recommendation import (
-    RecommendationRequest,
-    RecommendationListResponse,
-)
-from app.services.recommendation_service import recommendation_engine
+
+try:
+    from app.models.recommendation import (
+        RecommendationRequest,
+        RecommendationListResponse,
+    )
+    from app.services.recommendation_service import recommendation_engine
+except ImportError:
+    from models.recommendation import (
+        RecommendationRequest,
+        RecommendationListResponse,
+    )
+    from services.recommendation_service import recommendation_engine
 
 router = APIRouter()
 

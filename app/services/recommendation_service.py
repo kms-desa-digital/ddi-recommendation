@@ -6,13 +6,22 @@ from sklearn.metrics.pairwise import cosine_similarity
 from concurrent.futures import ThreadPoolExecutor
 import threading
 import time
-from app.config.mongodb_config import db
-from app.utils.text_processing import (
-    preprocess_text,
-    preprocess_combined_features,
-    batch_preprocess_text,
-)
-from app.models.recommendation import RecommendationResponse
+try:
+    from app.config.mongodb_config import db
+    from app.utils.text_processing import (
+        preprocess_text,
+        preprocess_combined_features,
+        batch_preprocess_text,
+    )
+    from app.models.recommendation import RecommendationResponse
+except ImportError:
+    from config.mongodb_config import db
+    from utils.text_processing import (
+        preprocess_text,
+        preprocess_combined_features,
+        batch_preprocess_text,
+    )
+    from models.recommendation import RecommendationResponse
 
 
 class RecommendationEngine:
