@@ -28,7 +28,7 @@ class RecommendationEngine:
         self.last_update = 0
         self.lock = threading.Lock()
         self.is_initialized = False
-        self.initialize_model()
+        # self.initialize_model() # Lazily initialized on the first request to prevent Vercel startup timeouts
 
     def _fetch_innovations_from_mongodb(self) -> List[Dict[str, Any]]:
         """
