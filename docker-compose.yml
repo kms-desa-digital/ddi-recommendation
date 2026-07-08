@@ -1,0 +1,20 @@
+version: '3.8'
+services:
+  recommendation:
+    build: .
+    # NAMA CONTAINER INI PENTING! Harus "recommendation" karena dipanggil oleh Next.js
+    container_name: recommendation
+    restart: unless-stopped
+    env_file:
+      - .env.local
+    ports:
+      - "8000:8000"
+    # Menyambungkan ke jaringan Next.js
+    networks:
+      - shared_network
+
+# Menggunakan jaringan eksternal yang sudah dibuat oleh repo Next.js
+networks:
+  shared_network:
+    name: desa_digital_net
+    external: true

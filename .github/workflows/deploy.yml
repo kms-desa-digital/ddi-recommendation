@@ -1,0 +1,28 @@
+name: Deploy Recommendation API
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy to Hostinger VPS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            cd /root/sistem-rekomendasi
+            git pull origin master || git pull origin main
+            
+            # Buat file .env dari Github Secrets
+            echo "${{ secrets.ENV_FILE }}" > .env.local
+            
+            docker compose build recommendation
+            docker compose up -d
+            docker image prune -f
